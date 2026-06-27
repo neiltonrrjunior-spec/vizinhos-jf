@@ -1,0 +1,172 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Papel {
+  morador
+  diretoria
+  admin_master
+  operador
+}
+
+enum Prioridade {
+  alta
+  media
+  baixa
+}
+
+enum StatusSolicitacao {
+  recebido
+  em_analise
+  encaminhado
+  em_execucao
+  resolvido
+  arquivado
+}
+
+enum StatusObra {
+  mobilizacao
+  em_execucao
+  concluida
+  paralisada
+}
+
+enum TipoOcorrenciaObra {
+  poeira
+  barulho
+  acesso_bloqueado
+  vazamento
+  dano_propriedade
+  obra_parada
+}
+
+enum CategoriaComunicado {
+  assembleia
+  aviso
+  obras
+  solidariedade
+  enquete
+}
+
+enum SecaoInformativa {
+  emergencia
+  prefeitura
+  ferramentas
+  direitos
+}
+
+model Usuario {
+  id            String   @id @default(uuid())
+  nome          String
+  telefone      String   @unique
+  email         String?  @unique
+  endereco      String
+  bairro        String   @default("Jardim Franco")
+  papel         Papel    @default(morador)
+  criadoEm      DateTime @default(now())
+  ativo         Boolean  @default(true)
+
+  solicitacoes  Solicitacao[]
+  ocorrencias   OcorrenciaObra[]
+  denuncias     Denuncia[]
+  comunicados   Comunicado[]
+}
+
+model Solicitacao {
+  id               String            @id @default(uuid())
+  protocolo        String            @unique
+  usuarioId        String
+  usuario          Usuario           @relation(fields: [usuarioId], references: [id])
+  categoria        String
+  subcategoria     String
+  descricao        String
+  endereco         String
+  prioridade       Prioridade
+  status           StatusSolicitacao @default(recebido)
+  familiasAfetadas Int?
+  fotos            String[]
+  criadoEm         DateTime          @default(now())
+  atualizadoEm     DateTime          @updatedAt
+}
+
+model ObraMetropolitana {
+  id                  String     @id @default(uuid())
+  nome                String
+  descricao           String
+  endereco            String
+  percentualProgresso Int        @default(0)
+  status              StatusObra @default(mobilizacao)
+  dataInicio          DateTime
+  previsaoFim         DateTime
+  empresaResponsavel  String     @default("Metropolitana")
+  numeroContrato      String
+
+  ocorrencias OcorrenciaObra[]
+}
+
+model OcorrenciaObra {
+  id          String              @id @default(uuid())
+  protocolo   String              @unique
+  obraId      String
+  obra        ObraMetropolitana   @relation(fields: [obraId], references: [id])
+  usuarioId   String
+  usuario     Usuario             @relation(fields: [usuarioId], references: [id])
+  tipo        TipoOcorrenciaObra
+  descricao   String
+  endereco    String
+  fotos       String[]
+  status      StatusSolicitacao   @default(recebido)
+  prioridade  Prioridade
+  criadoEm    DateTime            @default(now())
+}
+
+model Denuncia {
+  id              String            @id @default(uuid())
+  protocolo       String            @unique
+  anonima         Boolean           @default(false)
+  usuarioId       String?
+  usuario         Usuario?          @relation(fields: [usuarioId], references: [id])
+  tipo            String
+  descricao       String
+  endereco        String
+  quandoOcorreu   String
+  fotos           String[]
+  status          StatusSolicitacao @default(recebido)
+  querAcompanhar  Boolean           @default(false)
+  criadoEm        DateTime          @default(now())
+}
+
+model Comunicado {
+  id        String              @id @default(uuid())
+  titulo    String
+  conteudo  String
+  categoria CategoriaComunicado
+  fixado    Boolean             @default(false)
+  autorId   String
+  autor     Usuario             @relation(fields: [autorId], references: [id])
+  criadoEm  DateTime            @default(now())
+}
+
+model ConteudoInformativo {
+  id          String           @id @default(uuid())
+  secao       SecaoInformativa
+  titulo      String
+  descricao   String?
+  telefone    String?
+  link        String?
+  ordem       Int              @default(0)
+}
+
+model LogAdmin {
+  id              String   @id @default(uuid())
+  adminId         String
+  acao            String
+  entidadeAfetada String
+  entidadeId      String
+  criadoEm        DateTime @default(now())
+}
